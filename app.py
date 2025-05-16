@@ -452,31 +452,6 @@ def main():
     else:
         st.info("Выберите прогнозный период для моделирования ошибок.")
 
-    # Добавление возможности указать фактический ЧОК
-    st.header("4.2. Анализ отклонений от фактического ЧОК")
-    st.markdown("""
-    В этом разделе вы можете сравнить ваш прогнозный ЧОК с фактическим значением, которое стало известно после закрытия периода.
-    """)
-
-    if forecast_actual_column_selected and forecast_actual_column_selected in df_main_articles.columns:
-        forecasted_chok_value = all_period_totals.get(forecast_actual_column_selected, {}).get('ЧОК', np.nan)
-        if not pd.isna(forecasted_chok_value):
-            st.markdown(f"Прогнозный ЧОК: **{forecasted_chok_value:.0f} тыс. руб.** (для периода {forecast_actual_column_selected})")
-
-            actual_chok_input = st.number_input("Введите фактический ЧОК (тыс. руб.):", value=forecasted_chok_value, format="%.0f")
-
-            if not pd.isna(actual_chok_input):
-                chok_deviation = actual_chok_input - forecasted_chok_value
-                chok_deviation_percentage = (chok_deviation / forecasted_chok_value) * 100 if forecasted_chok_value != 0 else 0
-
-                st.metric(label="Отклонение от фактического ЧОК", value=f"{chok_deviation:.0f} тыс. руб.", delta=f"{chok_deviation_percentage:.2f}%")
-
-        else:
-            st.warning("Прогнозный ЧОК не определен, сравнение невозможно.")
-    else:
-        st.info("Выберите прогнозный период для сравнения с фактическим ЧОК.")
-
-
     st.header("5. Выгрузка данных в Excel")
     # ... (код Раздела 5 с подробными пояснениями из предыдущего ответа) ...
     st.markdown("Нажмите кнопку ниже, чтобы скачать все рассчитанные таблицы (на основе текущих настроек в боковой панели) в одном Excel файле. Каждая таблица будет размещена на отдельном листе.")
