@@ -390,11 +390,92 @@ def main():
     else:
         st.info("Выберите прогнозный период для анализа чувствительности.")
 
+    st.header("4.1. Модулятор ошибок прогноза статей")
+    st.markdown("""
+    Этот инструмент позволяет вам моделировать влияние различных ошибок прогноза статей на итоговый ЧОК.
+    Вы можете задать процент ошибки для отдельных статей и увидеть, как это повлияет на общий ЧОК и его отклонение от прогноза.
+    """)
+
+    if forecast_actual_column_selected and forecast_actual_column_selected in df_main_articles.columns:
+        forecasted_chok_value = all_period_totals.get(forecast_actual_column_selected, {}).get('ЧОК', np.nan)
+        if not pd.isna(forecasted_chok_value):
+            st.markdown(f"Базовый прогнозный ЧОК: **{forecasted_chok_value:.0f} тыс. руб.** (для периода {forecast_actual_column_selected})")
+
+            error_modulator_data = {'Статья': df_main_articles['Статья'].tolist(), 'Тип': df_main_articles['Тип'].tolist(),
+                                    'Прогноз': df_main_articles[forecast_actual_column_selected].tolist(), 'Ошибка (%)': [0.0] * len(df_main_articles)}
+            df_error_modulator = pd.DataFrame(error_modulator_data)
+
+            edited_df = st.data_editor(df_error_modulator, column_config={"Ошибка (%)": st.column_config.NumberColumn(min_value=-100.0, max_value=100.0, step=0.1, format="%.1f")},
+                                      hide_index=True, use_container_width=True, num_rows="dynamic")
+
+            if edited_df is not None:
+                modified_chok = forecasted_chok_value
+                chok_deviation = 0.0
+                modified_values = []
+                for _, row in edited_df.iterrows():
+                    forecast_value, error_percentage = row['Прогноз'], row['Ошибка (%)']
+                    if not pd.isna(forecast_value):
+                        modified_value = forecast_value * (1 + error_percentage / 100)
+                        modified_values.append(modified_value)
+                        if row['Тип'] == 'ОА':
+                            chok_deviation += (modified_value - forecast_value)
+                        elif row['Тип'] == 'КО':
+                            chok_deviation -= (modified_value - forecast_value)
+                    else:
+                        modified_values.append(np.nan)
+                edited_df['С учетом ошибки'] = modified_values
+                modified_chok += chok_deviation
+                chok_deviation_percentage = (chok_deviation / forecasted_chok_value) * 100 if forecasted_chok_value != 0 else 0
+
+                st.subheader("Результат моделирования:")
+                st.dataframe(edited_df[['Статья', 'Прогноз', 'Ошибка (%)', 'С учетом ошибки']].style.format({'Прогноз': "{:.0f}", 'С учетом ошибки': "{:.0f}", 'Ошибка (%)': "{:.1f}%"}), use_container_width=True)
+                st.metric(label="Изменение ЧОК", value=f"{modified_chok:.0f} тыс. руб.", delta=f"{chok_deviation:.0f} тыс. руб. ({chok_deviation_percentage:.2f}%)")
+
+                if abs(chok_deviation_percentage) > chok_deviation_limit_percentage:
+                    st.warning(f"Превышение допустимого отклонения ЧОК ({chok_deviation_limit_percentage}%).")
+                else:
+                    st.success("Отклонение ЧОК в пределах допустимого.")
+
+                # Подготовка данных для выгрузки в Excel
+                dfs_for_export = {}  # Инициализация словаря перед использованием
+                if 'Модулятор_ошибок' not in dfs_for_export:
+                    dfs_for_export['Модулятор_ошибок'] = pd.DataFrame()
+                dfs_for_export['Модулятор_ошибок'] = edited_df[['Статья', 'Прогноз', 'Ошибка (%)', 'С учетом ошибки']]
+
+        else:
+            st.warning("Прогнозный ЧОК не определен, моделирование невозможно.")
+    else:
+        st.info("Выберите прогнозный период для моделирования ошибок.")
+
+    # Добавление возможности указать фактический ЧОК
+    st.header("4.2. Анализ отклонений от фактического ЧОК")
+    st.markdown("""
+    В этом разделе вы можете сравнить ваш прогнозный ЧОК с фактическим значением, которое стало известно после закрытия периода.
+    """)
+
+    if forecast_actual_column_selected and forecast_actual_column_selected in df_main_articles.columns:
+        forecasted_chok_value = all_period_totals.get(forecast_actual_column_selected, {}).get('ЧОК', np.nan)
+        if not pd.isna(forecasted_chok_value):
+            st.markdown(f"Прогнозный ЧОК: **{forecasted_chok_value:.0f} тыс. руб.** (для периода {forecast_actual_column_selected})")
+
+            actual_chok_input = st.number_input("Введите фактический ЧОК (тыс. руб.):", value=forecasted_chok_value, format="%.0f")
+
+            if not pd.isna(actual_chok_input):
+                chok_deviation = actual_chok_input - forecasted_chok_value
+                chok_deviation_percentage = (chok_deviation / forecasted_chok_value) * 100 if forecasted_chok_value != 0 else 0
+
+                st.metric(label="Отклонение от фактического ЧОК", value=f"{chok_deviation:.0f} тыс. руб.", delta=f"{chok_deviation_percentage:.2f}%")
+
+        else:
+            st.warning("Прогнозный ЧОК не определен, сравнение невозможно.")
+    else:
+        st.info("Выберите прогнозный период для сравнения с фактическим ЧОК.")
+
 
     st.header("5. Выгрузка данных в Excel")
     # ... (код Раздела 5 с подробными пояснениями из предыдущего ответа) ...
     st.markdown("Нажмите кнопку ниже, чтобы скачать все рассчитанные таблицы (на основе текущих настроек в боковой панели) в одном Excel файле. Каждая таблица будет размещена на отдельном листе.")
-    dfs_for_export = {}
+    dfs_for_export = {} # Инициализация словаря
     if not df_main_for_export.empty: dfs_for_export["Данные_статьи"] = df_main_for_export
     if not df_totals_for_export.empty: dfs_for_export["Данные_итоги"] = df_totals_for_export
     if not df_materiality_calculated.empty: 
