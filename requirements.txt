@@ -1,0 +1,5 @@
+streamlit
+pandas
+numpy
+openpyxl  # Также полезен для чтения Excel, pandas может его требовать
+xlsxwriter # 
