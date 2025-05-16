@@ -124,7 +124,7 @@ def calculate_materiality(df_articles, period_totals_data, data_columns_list, me
             else:
                 col_materiality.append((np.abs(article_value) / np.abs(base_value_for_calc)) * 100)
         materiality_data[f'Сущ-ть ({col_name.split(" ")[0]}) (%)'] = col_materiality
-    
+
     #  ИЗМЕНЕНО: Формирование названия столбца с годом
     materiality_data_with_year = {'Статья': df_articles['Статья'].tolist()}
     for col_name in data_columns_list:
@@ -155,7 +155,7 @@ def calculate_forecast_deviations(df_articles, period_totals_data, forecast_col_
         rel_deviations_list.append(rel_dev)
     deviations_data[f'Абс. откл. (Прогноз - {base_col_name.split(" ")[0]})'] = abs_deviations_list
     deviations_data[f'Отн. откл. (Прогноз - {base_col_name.split(" ")[0]}) (%)'] = rel_deviations_list
-    df_deviations_result = pd.DataFrame(deviations_data)
+    df_deviations_result = pd.DataFrame(deviations_data)  # Corrected: Removed extra space
     summary_dev_rows = []
     for indicator in ['Итого ОА', 'Итого КО', 'ЧОК']:
         prog_data = period_totals_data.get(forecast_col_name, {})
@@ -169,7 +169,7 @@ def calculate_forecast_deviations(df_articles, period_totals_data, forecast_col_
         summary_dev_rows.append({
             'Показатель': indicator, 'Прогноз': prog_val, f'Факт ({base_col_name.split(" ")[0]})': base_val,
             'Абс. откл.': abs_d, 'Отн. откл. (%)': rel_d
-        })
+        })  # Corrected: Removed extra space
     return df_deviations_result, pd.DataFrame(summary_dev_rows)
 
 # --- 4. ДОПУСТИМЫЙ ДИАПАЗОН ОШИБКИ ПРОГНОЗА СТАТЬИ ---
@@ -209,7 +209,7 @@ def dfs_to_excel_bytes(dfs_dict):
                    safe_sheet_name.startswith("Допустимые_ошибки"):
                     index_val = False
                 df_data.to_excel(writer, sheet_name=safe_sheet_name, index=index_val)
-    return output.getvalue()
+    return output.getvalue()  # Corrected: Removed extra space
 
 # --- STREAMLIT APP ---
 def main():
@@ -223,7 +223,7 @@ def main():
 
     st.sidebar.header("Управление данными")
     uploaded_file = st.sidebar.file_uploader("Загрузить Excel (см. шаблон ниже)", type=["xlsx", "xls"], key="file_uploader")
-    col1, col2 = st.sidebar.columns(2)
+    col1, col2 = st.sidebar.columns(2)  # Corrected: Removed extra space
     if col1.button("Использ. демо-данные", key="use_demo_data_btn", use_container_width=True): # Сократил название кнопки
         st.session_state.df_main_articles = get_demo_data()
         st.session_state.data_source = "демо"
@@ -266,7 +266,7 @@ def main():
                                "within_OA_CO": "within_OA_CO (структура ОА/КО)"}[x],
         key="materiality_method_selector"
     )
-    
+
     active_value_columns = sorted(list(set(selected_fact_columns + ([forecast_actual_column_selected] if forecast_actual_column_selected else []))))
     active_value_columns = [col for col in active_value_columns if col in df_main_articles.columns]
     all_period_totals = calculate_period_totals(df_main_articles, active_value_columns)
@@ -313,7 +313,7 @@ def main():
     Выберите метод ниже, чтобы детальнее изучить разные аспекты существенности ваших статей ЧОК.
     """)
     st.subheader(f"Метод: { {'vs_CHOK': 'vs_CHOK (рычаг влияния)', 'vs_TotalComponents': 'vs_TotalComponents (доля в общем объеме)', 'within_OA_CO': 'within_OA_CO (структура ОА/КО)'}[materiality_method_key]}")
-    
+
     if materiality_method_key == "vs_CHOK":
         st.markdown("""*Формула: `(|Статья| / |ЧОК периода|) * 100%`. Показывает "рычаг" статьи на ЧОК. Сумма может быть >100%. Высокий % = статья сильно влияет на изменение ЧОК.*""")
     elif materiality_method_key == "vs_TotalComponents":
@@ -442,7 +442,7 @@ def main():
                     st.success("Отклонение ЧОК в пределах допустимого.")
 
                 # Подготовка данных для выгрузки в Excel
-                dfs_for_export = {}  # Инициализация словаря перед использованием
+                dfs_for_export = {}  # Инициализация словаря
                 if 'Модулятор_ошибок' not in dfs_for_export:
                     dfs_for_export['Модулятор_ошибок'] = pd.DataFrame()
                 dfs_for_export['Модулятор_ошибок'] = edited_df[['Статья', 'Прогноз', 'Ошибка (%)', 'С учетом ошибки']]
@@ -457,27 +457,26 @@ def main():
     st.markdown("Нажмите кнопку ниже, чтобы скачать все рассчитанные таблицы (на основе текущих настроек в боковой панели) в одном Excel файле. Каждая таблица будет размещена на отдельном листе.")
     dfs_for_export = {} # Инициализация словаря
     if not df_main_for_export.empty: dfs_for_export["Данные_статьи"] = df_main_for_export
-    if not df_totals_for_export.empty: dfs_for_export["Данные_итоги"] = df_totals_for_export
-    if not df_materiality_calculated.empty: 
+    if not df_totals_for_export.empty: dfs_for_export["Данные_итоги"] = df_totals_for_export  # Corrected: Removed extra space
+    if not df_materiality_calculated.empty:
         sheet_name_materiality = f"Сущ_{materiality_method_key}"[:31] # ИСПРАВЛЕНО: сокращаем имя листа
         dfs_for_export[sheet_name_materiality] = df_materiality_calculated
-    if not df_article_deviations.empty: dfs_for_export["Отклонения_статьи"] = df_article_deviations
-    if not df_summary_indicator_deviations.empty: 
+    if not df_article_deviations.empty: dfs_for_export["Отклонения_статьи"] = df_article_deviations  # Corrected: Removed extra space
+    if not df_summary_indicator_deviations.empty:
         dfs_for_export["Отклонения_итоги"] = df_summary_indicator_deviations.set_index('Показатель') if 'Показатель' in df_summary_indicator_deviations else df_summary_indicator_deviations
-    if not df_allowed_article_errors.empty: dfs_for_export["Допустимые_ошибки"] = df_allowed_article_errors
+    if not df_allowed_article_errors.empty: dfs_for_export["Допустимые_ошибки"] = df_allowed_article_errors  # Corrected: Removed extra space
 
-    if dfs_for_export: 
+    if dfs_for_export:
         excel_bytes = dfs_to_excel_bytes(dfs_for_export)
         st.download_button(
            label="📥 Скачать все расчеты в Excel",
            data=excel_bytes,
            file_name=f"анализ_чок_{pd.Timestamp.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-           key="download_excel_button" 
+           key="download_excel_button"
         )
     else:
         st.info("Нет данных для формирования Excel файла. Выберите периоды и/или загрузите данные для проведения расчетов.")
-
 
 if __name__ == '__main__':
     main()
