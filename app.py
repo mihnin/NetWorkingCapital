@@ -124,7 +124,12 @@ def calculate_materiality(df_articles, period_totals_data, data_columns_list, me
             else:
                 col_materiality.append((np.abs(article_value) / np.abs(base_value_for_calc)) * 100)
         materiality_data[f'Сущ-ть ({col_name.split(" ")[0]}) (%)'] = col_materiality
-    df_result = pd.DataFrame(materiality_data)
+    
+    #  ИЗМЕНЕНО: Формирование названия столбца с годом
+    materiality_data_with_year = {'Статья': df_articles['Статья'].tolist()}
+    for col_name in data_columns_list:
+        materiality_data_with_year[f"Сущ-ть ({col_name.replace(' Факт', '').replace(' Прогноз', '')}) (%)"] = materiality_data.get(f'Сущ-ть ({col_name.split(" ")[0]}) (%)', [])
+    df_result = pd.DataFrame(materiality_data_with_year)
     if method == "within_OA_CO" and 'Тип' in df_result.columns:
         df_result = df_result.drop(columns=['Тип'])
     return df_result
