@@ -159,7 +159,7 @@ def calculate_forecast_deviations(df_articles, period_totals_data, forecast_col_
         if pd.isna(prog_val) or pd.isna(base_val):
             abs_d, rel_d = np.nan, np.nan
         else:
-            abs_d = prog_val - base_val
+            abs_d = prog_val - base_val  # Corrected: forecast - fact
             rel_d = (abs_d / base_val) * 100 if base_val != 0 else (np.nan if prog_val !=0 else 0)
         summary_dev_rows.append({
             'Показатель': indicator, 'Прогноз': prog_val, f'Факт ({base_col_name.split(" ")[0]})': base_val,
